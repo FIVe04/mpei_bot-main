@@ -8,3 +8,4 @@ config.py
 venv
 __pycache__
 test.py
+data.db
