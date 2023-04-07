@@ -5,7 +5,7 @@ test_ngrok.py
 config.txt
 config.py
 Полезные ссылки.txt
-venv
-__pycache__
 test.py
 data.db
+venv
+__pycache__
