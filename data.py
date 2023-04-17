@@ -1,7 +1,6 @@
 import sqlite3
 import datetime
 
-
 class DbHelper:
     def __init__(self, dbname='data.db'):
         self.dbname = dbname
@@ -30,7 +29,7 @@ class DbHelper:
         self.conn.commit()
 
     def show_events(self):
-        return self.conn.execute("SELECT * FROM events WHERE (date >= ?) AND (count > 0)",
+        return self.conn.execute("SELECT * FROM events WHERE (date >= ?) AND (count >= 0)",
                                  (datetime.date.today(), )).fetchall()
 
     def get_event_name(self, event_id):

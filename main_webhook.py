@@ -5,7 +5,7 @@ import time
 import config
 import flask
 import sys
-
+import telegram
 
 try:
     public_url = sys.argv[1]
@@ -17,7 +17,7 @@ except Exception as e:
 API_TOKEN = config.TOKEN
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
-WEB_HOOK_URL = 'https://d8b2-2a00-1fa0-4a04-c006-a934-a503-3c1e-fb29.eu.ngrok.io'
+WEB_HOOK_URL = public_url
 
 TOKEN = config.TOKEN
 
