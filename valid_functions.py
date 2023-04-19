@@ -45,7 +45,7 @@ def check_date(date):
 
 def check_time(mero_time):
     try:
-        valid_mero_time = time.strptime(mero_time, format='%H:%M')
+        valid_mero_time = time.strptime(mero_time, '%H:%M')
         return True
     except ValueError:
         return 'Введите время начала в формате чч:мм '
