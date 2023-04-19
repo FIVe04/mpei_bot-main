@@ -37,7 +37,7 @@ def check_group_number(group_num):
 
 def check_date(date):
     try:
-        valid_date = time.strptime(date, '%m.%d.%Y')
+        valid_date = time.strptime(date, '%d.%m.%Y')
         return True
     except ValueError:
         return 'Введите дату в формате дд.мм.гггг '
