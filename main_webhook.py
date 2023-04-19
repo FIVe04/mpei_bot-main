@@ -242,6 +242,8 @@ def number_to_emoji(number):
     }
     new_number = ''.join([numbers_icons[int(i)] for i in str(number)])
     return new_number
+
+
 def show_events(message):
     db.del_events()
     text = ''
@@ -334,6 +336,7 @@ def show_my_registrations(message):
         text = 'Вы ещё не записались ни на одно мероприятие('
     bot.edit_message_text(text, message.chat.id, message.message_id, reply_markup=back)
 
+
 def unsubscribe(message):
     text = ''
     events = db.get_my_registrations(message.chat.id)
@@ -344,6 +347,7 @@ def unsubscribe(message):
                                                                        f"{message.chat.id}"))
     event_key.add(telebot.types.InlineKeyboardButton('Назад', callback_data='help'))
     bot.edit_message_text('Выберете мероприятие: ', message.chat.id, message.message_id, reply_markup=event_key)
+
 
 def unsubscribe_validate(message, event_id, telegram_id):
     db.unsubsribe_from_even(event_id, telegram_id)
@@ -379,7 +383,6 @@ def all_call(call):
             add_registration(call.message, int(a[-2]), int(a[-1]))
         if 'show_guests_for_event_' in call.data:
             show_guests_for_event(call.message, int(call.data.split('_')[-1]))
-
 
 
 @app.route('/', methods=['POST'])

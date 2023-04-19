@@ -1,6 +1,7 @@
 import sqlite3
 import datetime
 
+
 class DbHelper:
     def __init__(self, dbname='data.db'):
         self.dbname = dbname
