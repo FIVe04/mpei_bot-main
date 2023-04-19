@@ -5,6 +5,7 @@ import time
 import config
 import flask
 import sys
+from valid_functions import *
 import telegram
 
 try:
@@ -44,46 +45,35 @@ def start_command(message):
 
 def add_name(message):
     name = message.text
-    if not name or not (all([bool(i in VALID_ARR) for i in name])):
-        bot.send_message(message.chat.id, 'Это не похоже на имя. Попробуйте ещё раз. ')
-        bot.register_next_step_handler(message, add_name)
-    elif len(name) > 25:
-        bot.send_message(message.chat.id, 'Строка должна быть не длиннее 25 символов. Попробуйте ещё раз.')
-        bot.register_next_step_handler(message, add_name)
-    else:
+    answer = check_valid_str(name)
+    if answer is True:
         bot.send_message(message.chat.id, 'Введите вашу фамилию: ')
         bot.register_next_step_handler(message, add_surname, name)
+    else:
+        bot.send_message(message.chat.id, answer)
+        bot.register_next_step_handler(message, add_name)
 
 
 def add_surname(message, name):
     surname = message.text
-    if not surname or not (all([bool(i in VALID_ARR) for i in surname])):
-        bot.send_message(message.chat.id, 'Это не похоже на фамилию. Попробуйте ещё раз. ')
-        bot.register_next_step_handler(message, add_surname, name)
-    elif len(surname) > 25:
-        bot.send_message(message.chat.id, 'Строка должна быть не длиннее 25 символов. Попробуйте ещё раз.')
-        bot.register_next_step_handler(message, add_name)
-    else:
+    answer = check_valid_str(surname)
+    if answer is True:
         bot.send_message(message.chat.id, 'Введите номер учебной группы: ')
         bot.register_next_step_handler(message, add_group_number, name, surname)
+    else:
+        bot.send_message(message.chat.id, answer)
+        bot.register_next_step_handler(message, add_surname, name)
 
 
 def add_group_number(message, name, surname):
     group_num = message.text
-    if not (group_num[1] == '-' or group_num[2] == '-') or not (group_num[4] == '-' or group_num[5] == '-'):
-        bot.send_message(message.chat.id, 'Неверный номер группы! Он должен выглядеть, например, так А-01-22. '
-                                          'Попробуйте ещё раз.')
-        bot.register_next_step_handler(message, add_group_number, name, surname)
+    answer = check_group_number(group_num)
+    if answer is True:
+        group_num = message.text
+        db.add_person(message.chat.id, name, surname, group_num)
+        help_command(message)
     else:
-        group_num = group_num.split('-')
-        if not(all([bool(i in VALID_ARR) for i in group_num[0]])) or \
-                not (all([bool(ord(i) in range(48, 58)) for i in group_num[1] + group_num[2]])):
-            bot.send_message(message.chat.id, 'Неверный номер группы! Он должен выглядеть, например, так А-01-22. '
-                                              'Попробуйте ещё раз.')
-        else:
-            group_num = message.text
-            db.add_person(message.chat.id, name, surname, group_num)
-            help_command(message)
+        bot.send_message(message.chat.id, answer)
 
 
 @bot.message_handler(commands=['help'])
@@ -114,11 +104,6 @@ def show_rules(message):
                           '6) Ответственный за площадку Власов Вячеслав Александрович. '
                           'По всем вопросам, связанными с арендой площадки вы можете обращаться к нему.'
                           , message.chat.id, message.message_id, reply_markup=back)
-
-
-def new_event(message):
-    bot.edit_message_text('Введите название мероприятия: ', message.chat.id, message.message_id, reply_markup=back)
-    bot.register_next_step_handler(message, event_name)
 
 
 def add_admin(message):
@@ -175,11 +160,21 @@ def add_admin_in_db(message):
         bot.register_next_step_handler(message, add_admin_in_db)
 
 
+def new_event(message):
+    bot.edit_message_text('Введите название мероприятия: ', message.chat.id, message.message_id, reply_markup=back)
+    bot.register_next_step_handler(message, event_name)
+
+
 def event_name(message):
     name = message.text
-    bot.send_message(message.chat.id, 'Введите количество человек, которые могут посетить мероприятие: ',
-                     reply_markup=back)
-    bot.register_next_step_handler(message, event_count, name)
+    answer = check_valid_str(name)
+    if answer is True:
+        bot.send_message(message.chat.id, 'Введите количество человек, которые могут посетить мероприятие: ',
+                         reply_markup=back)
+        bot.register_next_step_handler(message, event_count, name)
+    else:
+        bot.send_message(message.chat.id, answer, reply_markup=back)
+        bot.register_next_step_handler(message, event_name)
 
 
 def event_count(message, name):
@@ -195,32 +190,27 @@ def event_count(message, name):
 
 def event_day(message, name, count):
     day = message.text
-    if len(day) == 10 and day[2] == day[5] == '.':
-        try:
-            day = list(map(int, day.split('.')))
-            day = '-'.join(message.text.split('.')[::-1])
-            bot.send_message(message.chat.id, 'Введите время начала мероприятия в формате чч:мм ', reply_markup=back)
-            bot.register_next_step_handler(message, event_time, name, count, day)
-        except ValueError:
-            bot.send_message(message.chat.id, 'Введите дату в формате дд.мм.гггг ', reply_markup=back)
-            bot.register_next_step_handler(message, event_day, name, count)
+    answer = check_date(day)
+    if answer is True:
+        day = '-'.join(message.text.split('.')[::-1])
+        bot.send_message(message.chat.id, 'Введите время начала мероприятия в формате чч:мм ', reply_markup=back)
+        bot.register_next_step_handler(message, event_time, name, count, day)
+    else:
+        bot.send_message(message.chat.id, answer, reply_markup=back)
+        bot.register_next_step_handler(message, event_day, name, count)
 
 
 def event_time(message, name, count, day):
-    time = message.text
-    if len(time) == 5 and time[2] == ":":
-        try:
-            h, m = list(map(int, time.split(":")))
-            add_event(message, name, count, day, time)
-        except ValueError:
-            bot.send_message(message.chat.id, "Введите время начала в формате чч:мм ", reply_markup=back)
-            bot.register_next_step_handler(message, event_time, name, count, day)
+    mero_time = message.text
+    answer = check_time(mero_time)
+    if answer is True:
+        add_event(message, name, count, day, time)
     else:
-        bot.send_message(message.chat.id, "Введите время начала в формате чч:мм ", reply_markup=back)
+        bot.send_message(message.chat.id, mero_time, reply_markup=back)
         bot.register_next_step_handler(message, event_time, name, count, day)
 
 
-def add_event(message, name, count, day, time):
+def add_event(message, name, count, day, mero_time):
     db.del_events()
     db.add_event(name, count, day, time)
     day = list(map(int, day.split('-')))
@@ -230,7 +220,7 @@ def add_event(message, name, count, day, time):
         telebot.types.InlineKeyboardButton('Назад', callback_data='help')
     )
     bot.send_message(message.chat.id, f"Мероприятие '{name}' успешно записано на "
-                                      f"{datetime.date(*day).strftime('%d/%m/%Y')} в {time}\n"
+                                      f"{datetime.date(*day).strftime('%d/%m/%Y')} в {mero_time}\n"
                                       f"Незабудьте ознакомиться с правилами аренды площадки 👇",
                      reply_markup=key)
 
@@ -364,4 +354,3 @@ if __name__ == '__main__':
     time.sleep(1)
     bot.set_webhook(url=WEB_HOOK_URL)
     app.run(host=APP_HOST, port=APP_PORT)
-
