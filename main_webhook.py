@@ -168,7 +168,7 @@ def new_event(message):
 
 def event_name(message):
     name = message.text
-    answer = check_valid_str(name)
+    answer = check_mero_name(name)
     if answer is True:
         bot.send_message(message.chat.id, 'Введите количество человек, которые могут посетить мероприятие: ',
                          reply_markup=back)

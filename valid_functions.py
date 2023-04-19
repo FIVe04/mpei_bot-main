@@ -1,13 +1,24 @@
 import time
 
 VALID_ARR = [chr(i) for i in range(1072, 1104)] + [chr(i) for i in range(1040, 1072)]
+VALID_ARR_2 = [chr(i) for i in range(1072, 1104)] + [chr(i) for i in range(1040, 1072)] + \
+              [' '] + [chr(i) for i in range(48, 58)] + [chr(i) for i in range(97, 123)] + \
+              [chr(i) for i in range(65, 91)]
 
 
 def check_valid_str(s):
     if not s or not (all([bool(i in VALID_ARR) for i in s])):
         return 'Это не похоже на имя. Попробуйте ещё раз. '
     if len(s) > 100:
-        return 'Строка должна быть не длиннее 25 символов. Попробуйте ещё раз.'
+        return 'Строка должна быть не длиннее 100 символов. Попробуйте ещё раз.'
+    return True
+
+
+def check_mero_name(s):
+    if not s or not (all([bool(i in VALID_ARR_2) for i in s])):
+        return 'Это не похоже на имя мероприятия. Попробуйте ещё раз. '
+    if len(s) > 100:
+        return 'Строка должна быть не длиннее 100 символов. Попробуйте ещё раз.'
     return True
 
 
