@@ -99,6 +99,7 @@ def help_command(message):
     keyboard.add(telebot.types.InlineKeyboardButton('Записаться на мероприятие', callback_data='registration_event'))
     keyboard.add(telebot.types.InlineKeyboardButton('Посмотреть ближайшие мероприятия', callback_data='show_events'))
     keyboard.add(telebot.types.InlineKeyboardButton('Посмотреть мои записи', callback_data='show_my_registrations'))
+    keyboard.add(telebot.types.InlineKeyboardButton('Отписаться от мероприятия', callback_data='unsubscribe'))
     bot.send_message(message.chat.id, 'Список команд: ', reply_markup=keyboard)
 
 
@@ -235,15 +236,36 @@ def add_event(message, name, count, day, time):
                      reply_markup=key)
 
 
+def number_to_emoji(number):
+    # 0️⃣1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣8️⃣9️⃣
+    numbers_icons = {
+        0: '0️⃣',
+        1: '1️⃣',
+        2: '2️⃣',
+        3: '3️⃣',
+        4: '4️⃣',
+        5: '5️⃣',
+        6: '6️⃣',
+        7: '7️⃣',
+        8: '8️⃣',
+        9: '9️⃣',
+    }
+    new_number = ''.join([numbers_icons[int(i)] for i in str(number)])
+    return new_number
 def show_events(message):
     db.del_events()
     text = ''
     events = db.show_events()
-    for event in events:
+    i=0
+    a=sorted(events, key=lambda e: (int(e[3].split('-')[0]), int(e[3].split('-')[1]), int(e[3].split('-')[2])))
+    for event in a:
+        print(event[3])
+        i += 1
         day = list(map(int, event[3].split('-')))
-        text += f"{datetime.date(*day).strftime('%d/%m/%Y')} '{event[1]}' начало в {event[-1]}\n"
-        text += f"Осталось мест: {event[2]}\n"
-        text += '-' * 100
+        text += number_to_emoji(i)
+        text += f' {event[1]}'
+        text += f"\n   {datetime.date(*day).strftime('%d/%m/%Y')} в {event[-1]}\n"
+        text += f"   Осталось мест: {event[2]}\n"
         text += '\n'
     if not text:
         text = 'Ближайших мероприятий нет('
@@ -277,6 +299,8 @@ def add_registration(message, event_id, telegram_id):
                                   reply_markup=back)
     else:
         bot.edit_message_text('Места закончились(', message.chat.id, message.message_id, reply_markup=back)
+
+# def del_registration(message, event_id, telegram_id):
 
 
 def show_guests(message):
@@ -320,6 +344,21 @@ def show_my_registrations(message):
         text = 'Вы ещё не записались ни на одно мероприятие('
     bot.edit_message_text(text, message.chat.id, message.message_id, reply_markup=back)
 
+def unsubscribe(message):
+    text = ''
+    events = db.get_my_registrations(message.chat.id)
+    event_key = telebot.types.InlineKeyboardMarkup()
+    for event in events:
+        event_key.add(telebot.types.InlineKeyboardButton(event[1],
+                                                         callback_data=f"del_registration_{event[0]}_"
+                                                                       f"{message.chat.id}"))
+    event_key.add(telebot.types.InlineKeyboardButton('Назад', callback_data='help'))
+    bot.edit_message_text('Выберете мероприятие: ', message.chat.id, message.message_id, reply_markup=event_key)
+
+def unsubscribe_validate(message, event_id, telegram_id):
+    db.unsubsribe_from_even(event_id, telegram_id)
+    bot.edit_message_text('Вы успешно отписались от мероприятия', message.chat.id, message.message_id, reply_markup=back)
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def all_call(call):
@@ -340,11 +379,17 @@ def all_call(call):
             show_my_registrations(call.message)
         if call.data == 'show_guests':
             show_guests(call.message)
+        if call.data == 'unsubscribe':
+            unsubscribe(call.message)
+        if 'del_registration_' in call.data:
+            a = call.data.split('_')
+            unsubscribe_validate(call.message, int(a[-2]), int(a[-1]))
         if 'add_registration_' in call.data:
             a = call.data.split('_')
             add_registration(call.message, int(a[-2]), int(a[-1]))
         if 'show_guests_for_event_' in call.data:
             show_guests_for_event(call.message, int(call.data.split('_')[-1]))
+
 
 
 @app.route('/', methods=['POST'])

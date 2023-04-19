@@ -32,6 +32,9 @@ class DbHelper:
         return self.conn.execute("SELECT * FROM events WHERE (date >= ?) AND (count >= 0)",
                                  (datetime.date.today(), )).fetchall()
 
+    def unsubsribe_from_even(self, event_id, telegram_id):
+        self.conn.execute("DELETE FROM registration WHERE event_id = ? and telegram_id = ? ", (event_id, telegram_id))
+        self.conn.execute("UPDATE events SET count = count + 1 WHERE id = ?", (event_id,))
     def get_event_name(self, event_id):
         return self.conn.execute("SELECT name FROM events WHERE id = ?", (event_id, )).fetchone()
 
@@ -57,10 +60,10 @@ class DbHelper:
         self.conn.execute('UPDATE events SET count = count - 1 WHERE id = ?', (event_id, ))
         self.conn.commit()
 
-    def get_my_registrations(self, telegtam_id):
+    def get_my_registrations(self, telegram_id):
         return self.conn.execute('SELECT * FROM events WHERE id IN '
                                  '(SELECT event_id FROM registration WHERE telegram_id = ?)',
-                                 (telegtam_id, )).fetchall()
+                                 (telegram_id, )).fetchall()
 
     def get_guests(self, event_id):
         return self.conn.execute('SELECT * FROM people WHERE telegram_id IN '
