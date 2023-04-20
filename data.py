@@ -45,10 +45,14 @@ class DbHelper:
         return self.conn.execute("SELECT name FROM events WHERE id = ?", (event_id, )).fetchone()
 
     def del_events(self):
-
         self.conn.execute('DELETE FROM registration WHERE event_id IN (SELECT id FROM events WHERE date < ?)',
                           (datetime.datetime.today() - datetime.timedelta(days=1), ))
         self.conn.execute('DELETE FROM events WHERE date < ?', (datetime.date.today() - datetime.timedelta(days=1), ))
+        self.conn.commit()
+
+    def del_event(self, event_id):
+        self.conn.execute("DELETE FROM events WHERE id = ?", (event_id, ))
+        self.conn.execute("DELETE FROM registration WHERE event_id = ?", (event_id, ))
         self.conn.commit()
 
     def get_number_of_available_seats(self, event_id):

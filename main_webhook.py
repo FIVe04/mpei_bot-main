@@ -90,6 +90,7 @@ def help_command(message):
     keyboard.add(telebot.types.InlineKeyboardButton('Посмотреть ближайшие мероприятия', callback_data='show_events'))
     keyboard.add(telebot.types.InlineKeyboardButton('Посмотреть мои записи', callback_data='show_my_registrations'))
     keyboard.add(telebot.types.InlineKeyboardButton('Отписаться от мероприятия', callback_data='unsubscribe'))
+    keyboard.add(telebot.types.InlineKeyboardButton('Удалить мероприятие', callback_data='del_event'))
     bot.send_message(message.chat.id, 'Список команд: ', reply_markup=keyboard)
 
 
@@ -280,6 +281,26 @@ def show_events(message):
     bot.edit_message_text(text, message.chat.id, message.message_id, reply_markup=back)
 
 
+def del_event(message):
+    db.del_events()
+    events = db.show_events()
+    event_key = telebot.types.InlineKeyboardMarkup()
+    if not events:
+        bot.edit_message_text('Ближайших мероприятий нет( ', message.chat.id, message.message_id, reply_markup=back)
+    else:
+        for event in events:
+            event_key.add(telebot.types.InlineKeyboardButton(event[1],
+                                                             callback_data=f"del_event_{event[0]}"))
+        event_key.add(telebot.types.InlineKeyboardButton('Назад', callback_data='help'))
+        bot.edit_message_text('Выберете мероприятие: ', message.chat.id, message.message_id, reply_markup=event_key)
+
+
+def del_event_from_db(message, event_id):
+    db.del_events()
+    db.del_event(event_id)
+    bot.edit_message_text('Мероприятие успешно удалено.', message.chat.id, message.message_id, reply_markup=back)
+
+
 def registration_event(message):
     db.del_events()
     events = db.show_events()
@@ -389,6 +410,10 @@ def all_call(call):
             show_guests(call.message)
         if call.data == 'unsubscribe':
             unsubscribe(call.message)
+        if call.data == 'del_event':
+            del_event(call.message)
+        if 'del_event_' in call.data:
+            del_event_from_db(call.message, int(call.data.split('_')[-1]))
         if 'del_registration_' in call.data:
             a = call.data.split('_')
             unsubscribe_validate(call.message, int(a[-2]), int(a[-1]))
