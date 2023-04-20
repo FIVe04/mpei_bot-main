@@ -8,17 +8,17 @@ import sys
 from valid_functions import *
 import telegram
 
-'''try:
+try:
     public_url = sys.argv[1]
 except Exception as e:
     public_url = ''
     print('You did not enter the ngrok public url')
-    raise e'''
+    raise e
 
 API_TOKEN = config.TOKEN
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
-WEB_HOOK_URL = 'https://fdbd-2a00-1370-81ae-93db-e188-bffb-8199-5e12.eu.ngrok.io'
+WEB_HOOK_URL = public_url
 
 TOKEN = config.TOKEN
 
