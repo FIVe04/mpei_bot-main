@@ -8,17 +8,17 @@ import sys
 from valid_functions import *
 import telegram
 
-try:
+'''try:
     public_url = sys.argv[1]
 except Exception as e:
     public_url = ''
     print('You did not enter the ngrok public url')
-    raise e
+    raise e'''
 
 API_TOKEN = config.TOKEN
 APP_HOST = '127.0.0.1'
 APP_PORT = '8444'
-WEB_HOOK_URL = public_url
+WEB_HOOK_URL = 'https://fdbd-2a00-1370-81ae-93db-e188-bffb-8199-5e12.eu.ngrok.io'
 
 TOKEN = config.TOKEN
 
@@ -191,37 +191,54 @@ def event_count(message, name):
 
 def event_day(message, name, count):
     day = message.text
-    answer = check_date(day)
+    answer, date_or_message = check_date(day)
     if answer is True:
-        day = '-'.join(message.text.split('.')[::-1])
         bot.send_message(message.chat.id, 'Введите время начала мероприятия в формате чч:мм ', reply_markup=back)
-        bot.register_next_step_handler(message, event_time, name, count, day)
+        bot.register_next_step_handler(message, event_time, name, count, date_or_message)
     else:
-        bot.send_message(message.chat.id, answer, reply_markup=back)
+        bot.send_message(message.chat.id, date_or_message, reply_markup=back)
         bot.register_next_step_handler(message, event_day, name, count)
 
 
 def event_time(message, name, count, day):
     mero_time = message.text
-    answer = check_time(mero_time)
+    answer, time_or_message = check_time(mero_time)
     if answer is True:
-        add_event(message, name, count, day, time)
+        if check_date_and_time(day, mero_time):
+            bot.send_message(message.chat.id, 'Введите длительность мероприятия в минутах ', reply_markup=back)
+            bot.register_next_step_handler(message, event_duration, name, count, day, mero_time)
+        else:
+            bot.send_message(message.chat.id, 'Невозможно создать мероприятие на введённую дату. Попробуйте заново.  ',
+                             reply_markup=back)
     else:
-        bot.send_message(message.chat.id, mero_time, reply_markup=back)
+        bot.send_message(message.chat.id, time_or_message, reply_markup=back)
         bot.register_next_step_handler(message, event_time, name, count, day)
 
 
-def add_event(message, name, count, day, mero_time):
+def event_duration(message, name, count, mero_day, mero_time):
+    try:
+        duration = int(message.text)
+        if check_if_can_add_mero_in_db(db, mero_day, mero_time, duration):
+            add_event(message, name, count, mero_day, mero_time, duration)
+        else:
+            bot.send_message(message.chat.id, 'Мероприятие не пересекается с другими, ознакомьтесь со списком '
+                                              'ближайших мероприятий и попробуйте снова. ', reply_markup=back)
+    except ValueError:
+        bot.send_message(message.chat.id, 'Это не похоже на время в минутах. ', reply_markup=back)
+        bot.register_next_step_handler(message, event_duration, name, count, mero_day, mero_time)
+
+
+def add_event(message, name, count, mero_day, mero_time, duration):
     db.del_events()
-    db.add_event(name, count, day, time)
-    day = list(map(int, day.split('-')))
+    db.add_event(name, count, mero_day, mero_time, duration)
+    mero_day = list(map(int, mero_day.split('-')))
     key = telebot.types.InlineKeyboardMarkup()
     key.add(
         telebot.types.InlineKeyboardButton('Правила аренды площадки', callback_data='show_rules'),
         telebot.types.InlineKeyboardButton('Назад', callback_data='help')
     )
     bot.send_message(message.chat.id, f"Мероприятие '{name}' успешно записано на "
-                                      f"{datetime.date(*day).strftime('%d/%m/%Y')} в {mero_time}\n"
+                                      f"{datetime.date(*mero_day).strftime('%d/%m/%Y')} в {mero_time}\n"
                                       f"Незабудьте ознакомиться с правилами аренды площадки 👇",
                      reply_markup=key)
 
@@ -248,10 +265,9 @@ def show_events(message):
     db.del_events()
     text = ''
     events = db.show_events()
-    i=0
-    a=sorted(events, key=lambda e: (int(e[3].split('-')[0]), int(e[3].split('-')[1]), int(e[3].split('-')[2])))
+    i = 0
+    a = sorted(events, key=lambda e: (int(e[3].split('-')[0]), int(e[3].split('-')[1]), int(e[3].split('-')[2])))
     for event in a:
-        print(event[3])
         i += 1
         day = list(map(int, event[3].split('-')))
         text += number_to_emoji(i)
@@ -291,8 +307,6 @@ def add_registration(message, event_id, telegram_id):
                                   reply_markup=back)
     else:
         bot.edit_message_text('Места закончились(', message.chat.id, message.message_id, reply_markup=back)
-
-# def del_registration(message, event_id, telegram_id):
 
 
 def show_guests(message):
