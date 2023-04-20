@@ -1,4 +1,6 @@
+import datetime
 import time
+from data import *
 
 VALID_ARR = [chr(i) for i in range(1072, 1104)] + [chr(i) for i in range(1040, 1072)]
 VALID_ARR_2 = [chr(i) for i in range(1072, 1104)] + [chr(i) for i in range(1040, 1072)] + \
@@ -37,15 +39,47 @@ def check_group_number(group_num):
 
 def check_date(date):
     try:
-        valid_date = time.strptime(date, '%d.%m.%Y')
-        return True
+        valid_date = datetime.datetime.strptime(date, '%d.%m.%Y')
+        iso_date = valid_date.strftime('%Y-%m-%d')
+        return True, iso_date
     except ValueError:
-        return 'Введите дату в формате дд.мм.гггг '
+        return False, 'Введите дату в формате дд.мм.гггг '
 
 
 def check_time(mero_time):
     try:
-        valid_mero_time = time.strptime(mero_time, '%H:%M')
-        return True
+        valid_mero_time = datetime.datetime.strptime(mero_time, '%H:%M')
+        iso_time = valid_mero_time.strftime('%H:%M')
+        return True, iso_time
     except ValueError:
-        return 'Введите время начала в формате чч:мм '
+        return False, 'Введите время начала в формате чч:мм '
+
+
+def check_date_and_time(mero_date, mero_time):
+    now = datetime.datetime.now()
+    if now.date() < datetime.datetime.strptime(mero_date, '%Y-%m-%d').date():
+        return True
+    if now.date() == datetime.datetime.strptime(mero_date, '%Y-%m-%d').date():
+        if now.time() < datetime.datetime.strptime(mero_time, '%H:%M').time():
+            return True
+        return False
+    return False
+
+
+def check_if_can_add_mero_in_db(db, mero_date, mero_time, duration):
+    events_date_and_time = db.get_events_date_and_time(mero_date)
+    a = sorted(events_date_and_time, key=lambda e: e[0])
+    mero_time_in_minutes = int(mero_time.split(':')[0]) * 60 + int(mero_time.split(':')[1])
+
+    for i in range(len(a) - 1):
+        time1 = int(a[i][0].split(':')[0]) * 60 + int(a[i][0].split(':')[1])
+        time2 = int(a[i + 1][0].split(':')[0]) * 60 + int(a[i + 1][0].split(':')[1])
+        if (time1 <= mero_time_in_minutes <= time2) and \
+                not((time1 + a[i][1] < mero_time_in_minutes) and (mero_time_in_minutes + duration < time2)):
+            return False
+    return True
+
+
+db = DbHelper()
+print(check_if_can_add_mero_in_db(db, '2023-04-21', '14:30', 60))
+
